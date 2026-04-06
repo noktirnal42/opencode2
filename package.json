@@ -4,11 +4,14 @@
   "version": "2.0.0-alpha.1",
   "type": "module",
   "license": "MIT",
-  "private": true,
-  "description": "OpenCode2 - Open Source AI Coding Agent",
+  "private": false,
+  "description": "OpenCode2 - Open Source AI Coding Agent with Jeeves Orchestration",
   "repository": {
     "type": "git",
-    "url": "https://github.com/opencode-ai/opencode2"
+    "url": "https://github.com/noktirnal42/opencode2"
+  },
+  "bin": {
+    "opencode2": "./dist/cli/index.js"
   },
   "scripts": {
     "dev": "tsx src/cli/index.ts",
@@ -18,7 +21,7 @@
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "lint": "echo 'Linting...'",
     "format": "echo 'Formatting...'",
-    "prepare": "echo 'Preparing...'"
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
