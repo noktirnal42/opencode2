@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "opencode2",
+  "version": "2.0.0-alpha.1",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "description": "OpenCode2 - Open Source AI Coding Agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opencode-ai/opencode2"
+  },
+  "scripts": {
+    "dev": "bun run src/cli/index.ts",
+    "build": "bun run script/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "echo 'Linting...'",
+    "format": "echo 'Formatting...'",
+    "prepare": "echo 'Preparing...'"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0",
+    "@ai-sdk/openai-compatible": "^2.0.0",
+    "@ai-sdk/google": "^3.0.0",
+    "@ai-sdk/azure": "^3.0.0",
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "ai": "^4.0.0",
+    "bun-pty": "^0.4.0",
+    "chokidar": "^4.0.0",
+    "zod": "^3.23.0",
+    "remeda": "^2.0.0",
+    "effect": "^3.0.0",
+    "drizzle-orm": "^0.40.0",
+    "better-sqlite3": "^11.0.0",
+    "yargs": "^18.0.0",
+    "gray-matter": "^4.0.0",
+    "glob": "^13.0.0",
+    "fuzzysort": "^3.1.0",
+    "ulid": "^2.3.0",
+    "semver": "^7.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "latest",
+    "@types/yargs": "latest",
+    "typescript": "^5.6.0",
+    "drizzle-kit": "^0.25.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

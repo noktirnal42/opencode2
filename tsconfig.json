@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react",
+    "jsxImportSource": "react",
+    "types": ["bun-types"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/agent/*": ["src/agent/*"],
+      "@/cli/*": ["src/cli/*"],
+      "@/tool/*": ["src/tool/*"],
+      "@/provider/*": ["src/provider/*"],
+      "@/session/*": ["src/session/*"],
+      "@/skill/*": ["src/skill/*"],
+      "@/memory/*": ["src/memory/*"],
+      "@/mcp/*": ["src/mcp/*"],
+      "@/storage/*": ["src/storage/*"],
+      "@/util/*": ["src/util/*"],
+      "@/config/*": ["src/config/*"],
+      "@/types/*": ["src/types/*"]
+    },
+    "noEmit": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*", "script/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
