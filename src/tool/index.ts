@@ -8,6 +8,24 @@ export { globTool, GlobTool, GlobInputSchema } from './glob'
 export { webFetchTool, WebFetchTool, WebFetchInputSchema } from './webfetch'
 export { webSearchTool, WebSearchTool, WebSearchInputSchema } from './websearch'
 
+// Task tools
+export { 
+  todoWriteTool, todoListTool, todoGetTool, todoUpdateTool, todoStopTool,
+  TodoWriteInputSchema, TodoListInputSchema, TodoGetInputSchema, 
+  TodoUpdateInputSchema, TodoStopInputSchema,
+  type Task, type TaskStatus, type TaskPriority
+} from './task'
+
+// Team tools
+export {
+  teamCreateTool, teamDeleteTool, teamSendMessageTool, teamListTool,
+  teamInfoTool, teamAddMemberTool, teamRemoveMemberTool, teamGetMessagesTool,
+  TeamCreateInputSchema, TeamDeleteInputSchema, TeamSendMessageInputSchema,
+  TeamListInputSchema, TeamInfoInputSchema, TeamAddMemberInputSchema,
+  TeamRemoveMemberInputSchema, TeamGetMessagesInputSchema,
+  type Team, type TeamMessage
+} from './team'
+
 import { readTool } from './read'
 import { writeTool } from './write'
 import { editTool } from './edit'
@@ -16,6 +34,8 @@ import { grepTool } from './grep'
 import { globTool } from './glob'
 import { webFetchTool } from './webfetch'
 import { webSearchTool } from './websearch'
+import { todoWriteTool, todoListTool, todoGetTool, todoUpdateTool, todoStopTool } from './task'
+import { teamCreateTool, teamDeleteTool, teamSendMessageTool, teamListTool, teamInfoTool, teamAddMemberTool, teamRemoveMemberTool, teamGetMessagesTool } from './team'
 import type { BaseTool } from '@/types/tool'
 
 // Registry of all available tools
@@ -27,7 +47,22 @@ export const tools: Record<string, BaseTool> = {
   grep: grepTool,
   glob: globTool,
   webfetch: webFetchTool,
-  websearch: webSearchTool
+  websearch: webSearchTool,
+  // Task tools
+  todo_write: todoWriteTool,
+  todo_list: todoListTool,
+  todo_get: todoGetTool,
+  todo_update: todoUpdateTool,
+  todo_stop: todoStopTool,
+  // Team tools
+  team_create: teamCreateTool,
+  team_delete: teamDeleteTool,
+  team_sendmessage: teamSendMessageTool,
+  team_list: teamListTool,
+  team_info: teamInfoTool,
+  team_addmember: teamAddMemberTool,
+  team_removemember: teamRemoveMemberTool,
+  team_getmessages: teamGetMessagesTool
 }
 
 // Get tool by name
