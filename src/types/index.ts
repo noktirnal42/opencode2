@@ -1,6 +1,44 @@
-// Core types re-exports
-export * from './tool'
+// Core types - import from tool.ts and re-export
+import type {
+  ToolDefinition,
+  ProviderConfig,
+  ModelConfig,
+  PermissionSet,
+  Permission,
+  PermissionBehavior,
+  MCPClient,
+  MCPTool,
+  MCPResource,
+  Message,
+  ToolCall,
+  ToolContext,
+  ToolResult,
+  AgentInfo,
+} from './tool'
 
+import { BaseTool } from './tool'
+
+// Re-export
+export type {
+  ToolDefinition,
+  ProviderConfig,
+  ModelConfig,
+  PermissionSet,
+  Permission,
+  PermissionBehavior,
+  MCPClient,
+  MCPTool,
+  MCPResource,
+  Message,
+  ToolCall,
+  ToolContext,
+  ToolResult,
+  AgentInfo,
+}
+
+export { BaseTool }
+
+// Additional types for the application
 export interface Session {
   id: string
   agent: string
@@ -66,7 +104,7 @@ export interface MCPServerConfig {
 }
 
 export interface PermissionConfig {
-  defaultMode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'dontAsk' | 'plan'
+  defaultMode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'dontAsk' | 'plan' | 'ask'
 }
 
 export interface LocalModelsConfig {

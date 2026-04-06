@@ -102,12 +102,14 @@ export const WriteSchema = z.object({
 export const EditSchema = z.object({
   path: z.string(),
   oldString: z.string(),
-  newString: z.string()
+  newString: z.string(),
+  replaceAll: z.boolean().optional()
 })
 
 export const BashSchema = z.object({
   command: z.string(),
-  timeout: z.number().optional()
+  timeout: z.number().optional(),
+  workdir: z.string().optional()
 })
 
 export const GrepSchema = z.object({
@@ -123,11 +125,17 @@ export const GlobSchema = z.object({
 })
 
 export const WebFetchSchema = z.object({
-  url: z.string().url()
+  url: z.string().url(),
+  format: z.enum(['text', 'markdown', 'html']).optional(),
+  timeout: z.number().optional()
 })
 
 export const WebSearchSchema = z.object({
-  query: z.string()
+  query: z.string(),
+  numResults: z.number().optional(),
+  livecrawl: z.enum(['fallback', 'preferred']).optional(),
+  type: z.enum(['auto', 'fast', 'deep']).optional(),
+  contextMaxCharacters: z.number().optional()
 })
 
 // Tool definition
@@ -140,14 +148,12 @@ export interface ToolDefinition<T = unknown, R = unknown> {
 }
 
 // Base tool class
-export abstract class BaseTool<T = unknown, R = unknown> {
+export abstract class BaseTool<TInput = unknown, TResult = unknown> {
   abstract readonly name: string
   abstract readonly description: string
-  abstract readonly inputSchema: z.ZodSchema<T>
+  abstract readonly inputSchema: z.ZodSchema<TInput>
   
-  abstract execute(context: ToolContext, input: T): Promise<ToolResult<R>>
+  abstract execute(context: ToolContext, input: TInput): Promise<ToolResult<TResult>>
   
-  get aliases(): string[] {
-    return []
-  }
+  aliases: string[] = []
 }

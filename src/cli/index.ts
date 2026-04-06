@@ -2,25 +2,17 @@
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { ConfigManager } from '@/config'
-import { config } from 'process'
 
 const VERSION = '2.0.0-alpha.1'
 
-interface RunOptions {
-  prompt?: string
-  model?: string
-  agent?: string
-  stream?: boolean
-}
-
-async function runCommand(argv: RunOptions) {
+async function runCommand(argv: any) {
   console.log('OpenCode2 v' + VERSION)
   console.log('─'.repeat(40))
   
   const configManager = new ConfigManager()
-  const config = await configManager.load()
+  const cfg = await configManager.load()
   
-  console.log('Config loaded:', config.version)
+  console.log('Config loaded:', cfg.version)
   
   if (argv.agent) {
     console.log('Agent:', argv.agent)
@@ -38,17 +30,15 @@ async function runCommand(argv: RunOptions) {
   console.log('\nTip: Initialize a session with: opencode2 run "your prompt"')
 }
 
-interface ModelsOptions {}
-
-async function modelsCommand(_argv: ModelsOptions) {
+async function modelsCommand() {
   console.log('Available Models:')
   console.log('─'.repeat(40))
   
   const configManager = new ConfigManager()
-  const config = await configManager.load()
+  const cfg = await configManager.load()
   
   // List configured providers
-  for (const [name, provider] of Object.entries(config.providers)) {
+  for (const [name, provider] of Object.entries(cfg.providers)) {
     console.log(`\n${name}:`)
     if (provider.models) {
       for (const model of provider.models) {
@@ -75,21 +65,15 @@ async function modelsCommand(_argv: ModelsOptions) {
   }
 }
 
-interface ProvidersOptions {
-  add?: string
-  remove?: string
-  list?: boolean
-}
-
-async function providersCommand(argv: ProvidersOptions) {
+async function providersCommand(argv: any) {
   if (argv.list) {
     console.log('Configured Providers:')
     console.log('─'.repeat(40))
     
     const configManager = new ConfigManager()
-    const config = await configManager.load()
+    const cfg = await configManager.load()
     
-    for (const [name, provider] of Object.entries(config.providers)) {
+    for (const [name, provider] of Object.entries(cfg.providers)) {
       console.log(`\n${name}:`)
       console.log(`  Type: ${provider.type}`)
       console.log(`  Has API Key: ${provider.apiKey ? 'yes' : 'no'}`)
@@ -98,22 +82,17 @@ async function providersCommand(argv: ProvidersOptions) {
   }
 }
 
-interface VersionOptions {}
-
-function versionCommand(_argv: VersionOptions) {
+function versionCommand() {
   console.log(`OpenCode2 version ${VERSION}`)
 }
 
-const args = hideBin(process.argv)
-
-yargs(args)
+// Main CLI setup
+yargs(hideBin(process.argv))
   .scriptName('opencode2')
-  .version(VERSION)
-  .describe('OpenCode2 - Open Source AI Coding Agent')
   .command(
     'run [prompt]',
     'Run a prompt with OpenCode2',
-    (yargs) => {
+    (yargs: any) => {
       return yargs
         .positional('prompt', {
           describe: 'The prompt to run',
@@ -136,13 +115,13 @@ yargs(args)
   .command(
     'models',
     'List available models',
-    {},
+    () => {},
     modelsCommand
   )
   .command(
     'providers',
     'Manage providers',
-    (yargs) => {
+    (yargs: any) => {
       return yargs
         .option('list', { alias: 'l', type: 'boolean', describe: 'List providers' })
         .option('add', { type: 'string', describe: 'Add provider' })
@@ -153,11 +132,10 @@ yargs(args)
   .command(
     'version',
     'Show version',
-    {},
+    () => {},
     versionCommand
   )
   .help()
   .alias('help', 'h')
-  .alias('version', 'v')
   .demandCommand()
   .parse()

@@ -2,12 +2,15 @@
 export * from './types'
 export * from './client'
 
+import { getMCPServerManager } from './client'
+
 // Quick initialization
 export async function initMCP(servers: import('./types').MCPServer[]): Promise<void> {
+  const manager = getMCPServerManager()
   for (const server of servers) {
-    await mcpServerManager.addServer(server)
+    await manager.addServer(server)
   }
 }
 
-// Export manager
-export { mcpServerManager } from './client'
+// Export manager getter
+export { getMCPServerManager } from './client'

@@ -4,7 +4,6 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createAzure } from '@ai-sdk/azure'
-import type { LanguageModel, Provider } from 'ai'
 import type { ProviderConfig } from '@/types'
 
 // Ollama provider
@@ -42,7 +41,7 @@ export class OllamaProvider {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const data = await response.json()
+      const data = await response.json() as { models?: OllamaModel[] }
       return data.models ?? []
     } catch (error) {
       console.error('Failed to list Ollama models:', error)
@@ -50,18 +49,12 @@ export class OllamaProvider {
     }
   }
   
-  create(): Provider {
+  create() {
     return createOpenAICompatible({
+      name: 'ollama',
       baseURL: `${this.baseUrl}/v1`,
-      apiKey: 'ollama',  // Ollama doesn't require API key but v1 format needs one
-      headers: {
-        'Authorization': 'Bearer ollama'
-      }
-    })
-  }
-  
-  createModel(modelName: string): LanguageModel {
-    return this.create().chatModel(modelName)
+      apiKey: 'ollama'
+    }) as any
   }
 }
 
@@ -94,23 +87,20 @@ export class LMStudioProvider {
     try {
       const response = await fetch(`${this.baseUrl}/models`)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const data = await response.json()
-      return (data.data ?? []).map((m: { id: string }) => m.id)
+      const data = await response.json() as { data?: Array<{ id: string }> }
+      return (data.data ?? []).map((m) => m.id)
     } catch (error) {
       console.error('Failed to list LMStudio models:', error)
       return []
     }
   }
   
-  create(): Provider {
+  create() {
     return createOpenAICompatible({
+      name: 'lmstudio',
       baseURL: this.baseUrl,
-      apiKey: 'not-required'  // LMStudio doesn't require auth
-    })
-  }
-  
-  createModel(modelName: string): LanguageModel {
-    return this.create().chatModel(modelName)
+      apiKey: 'not-required'
+    }) as any
   }
 }
 
@@ -119,7 +109,6 @@ export type SupportedProvider = 'anthropic' | 'openai' | 'google' | 'azure' | 'o
 
 export interface ProviderInstance {
   name: SupportedProvider
-  provider: Provider
   isConnected: () => Promise<boolean>
   listModels?: () => Promise<string[]>
 }
@@ -132,15 +121,13 @@ export function createProvider(config: ProviderConfig): ProviderInstance | null 
       if (!apiKey) return null
       return {
         name: 'anthropic',
-        provider: createAnthropic({ apiKey }),
-        isConnected: async () => true  // Will fail on first call if invalid
+        isConnected: async () => true
       }
     
     case 'openai':
       if (!apiKey) return null
       return {
         name: 'openai',
-        provider: createOpenAI({ apiKey }),
         isConnected: async () => true
       }
     
@@ -148,17 +135,12 @@ export function createProvider(config: ProviderConfig): ProviderInstance | null 
       if (!apiKey) return null
       return {
         name: 'google',
-        provider: createGoogleGenerativeAI({ apiKey }),
         isConnected: async () => true
       }
     
     case 'azure':
       return {
         name: 'azure',
-        provider: createAzure({ 
-          apiKey: apiKey ?? '',
-          baseURL: baseUrl ?? ''
-        }),
         isConnected: async () => true
       }
     
@@ -166,7 +148,6 @@ export function createProvider(config: ProviderConfig): ProviderInstance | null 
       const ollama = new OllamaProvider({ baseUrl })
       return {
         name: 'ollama',
-        provider: ollama.create(),
         isConnected: () => ollama.isConnected(),
         listModels: () => ollama.listModels().then(m => m.map(x => x.name))
       }
@@ -176,7 +157,6 @@ export function createProvider(config: ProviderConfig): ProviderInstance | null 
       const lmstudio = new LMStudioProvider({ baseUrl })
       return {
         name: 'lmstudio',
-        provider: lmstudio.create(),
         isConnected: () => lmstudio.isConnected(),
         listModels: () => lmstudio.listModels()
       }
@@ -197,7 +177,6 @@ export async function detectLocalProviders(): Promise<ProviderInstance[]> {
     if (await ollama.isConnected()) {
       providers.push({
         name: 'ollama',
-        provider: ollama.create(),
         isConnected: () => ollama.isConnected(),
         listModels: () => ollama.listModels().then(m => m.map(x => x.name))
       })
@@ -210,7 +189,6 @@ export async function detectLocalProviders(): Promise<ProviderInstance[]> {
     if (await lmstudio.isConnected()) {
       providers.push({
         name: 'lmstudio',
-        provider: lmstudio.create(),
         isConnected: () => lmstudio.isConnected(),
         listModels: () => lmstudio.listModels()
       })

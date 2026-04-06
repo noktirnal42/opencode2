@@ -15,7 +15,7 @@ const MAX_TIMEOUT = 120 * 1000 // 2 minutes
 
 export const WebFetchInputSchema = z.object({
   url: z.string().describe('The URL to fetch content from'),
-  format: z.enum(['text', 'markdown', 'html']).default('markdown').describe('Output format'),
+  format: z.enum(['text', 'markdown', 'html']).describe('Output format'),
   timeout: z.number().optional().describe('Timeout in seconds (max 120)')
 })
 
@@ -121,10 +121,11 @@ export class WebFetchTool extends BaseTool<WebFetchInput, string> {
     }
 
     const timeout = Math.min((input.timeout ?? DEFAULT_TIMEOUT / 1000) * 1000, MAX_TIMEOUT)
+    const format = input.format || 'markdown'
 
     // Build Accept header based on format
     let acceptHeader = '*/*'
-    switch (input.format) {
+    switch (format) {
       case 'markdown':
         acceptHeader = 'text/markdown;q=1.0, text/x-markdown;q=0.9, text/plain;q=0.8, text/html;q=0.7, */*;q=0.1'
         break
@@ -202,7 +203,7 @@ export class WebFetchTool extends BaseTool<WebFetchInput, string> {
 
       // Format output based on requested format
       let output: string
-      switch (input.format) {
+      switch (format) {
         case 'markdown':
           if (mime.includes('text/html')) {
             output = htmlToMarkdown(content)

@@ -14,6 +14,6 @@ export async function initializeSkills(cwd: string = process.cwd()): Promise<voi
 export const skills = {
   list: listSkills,
   has: hasSkill,
-  get,
+  get: getSkill,
   execute: executeSkill
 }

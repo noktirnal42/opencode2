@@ -10,10 +10,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "jsx": "react",
-    "jsxImportSource": "react",
-    "types": ["bun-types"],
     "baseUrl": ".",
+    "outDir": "dist",
     "paths": {
       "@/*": ["src/*"],
       "@/agent/*": ["src/agent/*"],
@@ -29,11 +27,12 @@
       "@/config/*": ["src/config/*"],
       "@/types/*": ["src/types/*"]
     },
-    "noEmit": true,
+    "noEmit": false,
     "isolatedModules": true,
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   },
-  "include": ["src/**/*", "script/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

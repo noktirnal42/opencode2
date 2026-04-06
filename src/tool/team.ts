@@ -54,7 +54,7 @@ export const TeamSendMessageInputSchema = z.object({
   teamId: z.string().describe('Team ID to send message to'),
   to: z.string().describe('Recipient agent name (or "all" for broadcast)'),
   content: z.string().describe('Message content'),
-  type: z.enum(['direct', 'broadcast', 'reply']).optional().default('direct').describe('Message type'),
+  type: z.enum(['direct', 'broadcast', 'reply']).describe('Message type'),
   replyTo: z.string().optional().describe('Message ID to reply to')
 })
 
@@ -79,7 +79,7 @@ export const TeamRemoveMemberInputSchema = z.object({
 export const TeamGetMessagesInputSchema = z.object({
   teamId: z.string().describe('Team ID'),
   agentName: z.string().optional().describe('Filter messages for specific agent'),
-  limit: z.number().optional().default(50).describe('Max messages to return')
+  limit: z.number().describe('Max messages to return')
 })
 
 export type TeamCreateInput = z.infer<typeof TeamCreateInputSchema>
@@ -184,13 +184,14 @@ export class TeamSendMessageTool extends BaseTool<TeamSendMessageInput, TeamMess
       }
     }
 
+    const messageType = input.type || 'direct'
     const message: TeamMessage = {
       id: generateMessageId(),
       from: context.agent.name,
       to: input.to,
       content: input.content,
       timestamp: Date.now(),
-      type: input.type,
+      type: messageType as 'direct' | 'broadcast' | 'reply',
       replyTo: input.replyTo
     }
 
@@ -200,7 +201,7 @@ export class TeamSendMessageTool extends BaseTool<TeamSendMessageInput, TeamMess
     messageStore.set(input.teamId, messages)
 
     const recipientDisplay = input.to === 'all' ? 'all members' : input.to
-    const typeDisplay = input.type === 'broadcast' ? 'broadcast to' : 'sent to'
+    const typeDisplay = messageType === 'broadcast' ? 'broadcast to' : 'sent to'
 
     return {
       content: `Message ${typeDisplay} ${recipientDisplay} in team "${team.name}"\n[${message.id}] ${context.agent.name}: ${input.content}`,
@@ -391,6 +392,7 @@ export class TeamGetMessagesTool extends BaseTool<TeamGetMessagesInput, TeamMess
     }
 
     let messages = messageStore.get(input.teamId) ?? []
+    const limit = input.limit ?? 50
 
     // Filter by agent if specified
     if (input.agentName) {
@@ -399,7 +401,7 @@ export class TeamGetMessagesTool extends BaseTool<TeamGetMessagesInput, TeamMess
 
     // Sort by timestamp (newest first) and limit
     messages.sort((a, b) => b.timestamp - a.timestamp)
-    messages = messages.slice(0, input.limit)
+    messages = messages.slice(0, limit)
 
     if (messages.length === 0) {
       return {

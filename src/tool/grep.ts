@@ -6,11 +6,8 @@
 
 import { z } from 'zod'
 import { BaseTool, type ToolContext, type ToolResult } from '@/types/tool'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { spawn } from 'child_process'
 import * as path from 'path'
-
-const execAsync = promisify(exec)
 
 const MAX_LINE_LENGTH = 2000
 const MAX_RESULTS = 100
@@ -42,8 +39,8 @@ export class GrepTool extends BaseTool<GrepInput, { matches: number; results: st
     // Build ripgrep command
     const args = [
       '-nH',           // Show line numbers
-      '--hidden',      // Include hidden files
-      '--no-messages', // Suppress error messages
+      '--hidden',       // Include hidden files
+      '--no-messages',  // Suppress error messages
       '--field-match-separator=|',
       '--regexp', input.pattern
     ]
@@ -58,109 +55,123 @@ export class GrepTool extends BaseTool<GrepInput, { matches: number; results: st
 
     args.push(searchPath)
 
-    try {
-      const { stdout, stderr, code } = await execAsync(
-        'rg ' + args.map(a => `"${a}"`).join(' '),
-        { 
-          cwd: context.cwd,
-          maxBuffer: 10 * 1024 * 1024 // 10MB
-        }
-      )
+    return new Promise((resolve) => {
+      let stdout = ''
+      let stderr = ''
+      let exitCode = 0
 
-      // Exit codes: 0 = matches, 1 = no matches, 2 = errors
-      if (code === 1) {
-        return {
-          content: 'No files found',
-          data: { matches: 0, results: '' }
-        }
-      }
+      const rg = spawn('rg', args, { cwd: context.cwd })
 
-      if (code === 2 && !stdout.trim()) {
-        return {
-          content: `Search error: ${stderr || 'Unknown error'}`,
-          error: 'GREP_ERROR'
-        }
-      }
+      rg.stdout?.on('data', (data) => { stdout += data.toString() })
+      rg.stderr?.on('data', (data) => { stderr += data.toString() })
 
-      // Parse output: "filepath|lineNum|content"
-      const lines = stdout.trim().split(/\r?\n/)
-      const results: Array<{
-        file: string
-        line: number
-        text: string
-        mtime: number
-      }> = []
+      rg.on('close', (code) => {
+        exitCode = code ?? 0
 
-      for (const line of lines) {
-        if (!line) continue
-        const parts = line.split('|')
-        if (parts.length < 3) continue
-
-        const [filePath, lineNumStr, ...textParts] = parts
-        const lineNum = parseInt(lineNumStr, 10)
-        const text = textParts.join('|')
-
-        // Get file mtime
-        let mtime = 0
-        try {
-          const fs = await import('fs/promises')
-          const stat = await fs.stat(filePath)
-          mtime = stat.mtimeMs
-        } catch { /* ignore */ }
-
-        results.push({ file: filePath, line: lineNum, text, mtime })
-      }
-
-      // Sort by modification time (newest first)
-      results.sort((a, b) => b.mtime - a.mtime)
-
-      const totalMatches = results.length
-      const truncated = results.length > MAX_RESULTS
-      const limited = truncated ? results.slice(0, MAX_RESULTS) : results
-
-      // Format output
-      const output: string[] = []
-      let currentFile = ''
-
-      for (const match of limited) {
-        if (currentFile !== match.file) {
-          if (currentFile !== '') output.push('')
-          currentFile = match.file
-          output.push(`${match.file}:`)
+        // Exit codes: 0 = matches, 1 = no matches, 2 = errors
+        if (exitCode === 1) {
+          resolve({
+            content: 'No files found',
+            data: { matches: 0, results: '' }
+          })
+          return
         }
 
-        // Truncate long lines
-        let lineText = match.text
-        if (lineText.length > MAX_LINE_LENGTH) {
-          lineText = lineText.substring(0, MAX_LINE_LENGTH) + '...'
+        if (exitCode === 2 && !stdout.trim()) {
+          resolve({
+            content: `Search error: ${stderr || 'Unknown error'}`,
+            error: 'GREP_ERROR'
+          })
+          return
         }
 
-        output.push(`  Line ${match.line}: ${lineText}`)
-      }
+        // Parse output: "filepath|lineNum|content"
+        const lines = stdout.trim().split(/\r?\n/)
+        const results: Array<{
+          file: string
+          line: number
+          text: string
+          mtime: number
+        }> = []
 
-      if (truncated) {
-        output.push('')
-        output.push(`(Results truncated: showing ${MAX_RESULTS} of ${totalMatches} matches)`)
-      }
+        const parsePromises: Promise<void>[] = []
 
-      const outputStr = output.join('\n')
+        for (const line of lines) {
+          if (!line) continue
+          const parts = line.split('|')
+          if (parts.length < 3) continue
 
-      return {
-        content: `Found ${totalMatches} matches${truncated ? ` (showing first ${MAX_RESULTS})` : ''}`,
-        data: { matches: totalMatches, results: outputStr }
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        return {
+          const [filePath, lineNumStr, ...textParts] = parts
+          const lineNum = parseInt(lineNumStr, 10)
+          const text = textParts.join('|')
+
+          // Get file mtime
+          const parsePromise = (async () => {
+            let mtime = 0
+            try {
+              const fs = await import('fs/promises')
+              const stat = await fs.stat(filePath)
+              mtime = stat.mtimeMs
+            } catch { /* ignore */ }
+            results.push({ file: filePath, line: lineNum, text, mtime })
+          })()
+          parsePromises.push(parsePromise)
+        }
+
+        Promise.all(parsePromises).then(() => {
+          // Sort by modification time (newest first)
+          results.sort((a, b) => b.mtime - a.mtime)
+
+          const totalMatches = results.length
+          const truncated = results.length > MAX_RESULTS
+          const limited = truncated ? results.slice(0, MAX_RESULTS) : results
+
+          // Format output
+          const output: string[] = []
+          let currentFile = ''
+
+          for (const match of limited) {
+            if (currentFile !== match.file) {
+              if (currentFile !== '') output.push('')
+              currentFile = match.file
+              output.push(`${match.file}:`)
+            }
+
+            // Truncate long lines
+            let lineText = match.text
+            if (lineText.length > MAX_LINE_LENGTH) {
+              lineText = lineText.substring(0, MAX_LINE_LENGTH) + '...'
+            }
+
+            output.push(`  Line ${match.line}: ${lineText}`)
+          }
+
+          if (truncated) {
+            output.push('')
+            output.push(`(Results truncated: showing ${MAX_RESULTS} of ${totalMatches} matches)`)
+          }
+
+          if (exitCode === 2) {
+            output.push('')
+            output.push('(Some paths were inaccessible and skipped)')
+          }
+
+          const outputStr = output.join('\n')
+
+          resolve({
+            content: `Found ${totalMatches} matches${truncated ? ` (showing first ${MAX_RESULTS})` : ''}`,
+            data: { matches: totalMatches, results: outputStr }
+          })
+        })
+      })
+
+      rg.on('error', (error) => {
+        resolve({
           content: `Grep error: ${error.message}`,
           error: 'GREP_ERROR'
-        }
-      }
-      return {
-        content: 'Unknown grep error',
-        error: 'GREP_ERROR'
-      }
-    }
+        })
+      })
+    })
   }
 }
 

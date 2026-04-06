@@ -1,8 +1,7 @@
 // MCP Client - Connect to MCP servers and call tools
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
-import type { MCPServer, MCPTool, MCPResource, MCPServerInfo, MCPToolCallRequest, MCPToolCallResponse } from './types'
+import type { MCPServer, MCPTool, MCPResource, MCPServerInfo } from './types'
 import type { ToolContext, ToolResult } from '@/types/tool'
 
 // MCP Client wrapper
@@ -18,7 +17,10 @@ export class MCPClientWrapper {
   
   async connect(): Promise<void> {
     try {
-      await this.client.connect()
+      await this.client.connect(new StdioClientTransport({
+        command: 'true', // dummy command, will be replaced
+        args: []
+      }))
       this.connected = true
     } catch (error) {
       console.error(`Failed to connect to MCP server ${this.serverName}:`, error)
@@ -53,13 +55,13 @@ export class MCPClientWrapper {
     return response.resources.map(resource => ({
       uri: resource.uri,
       name: resource.name ?? resource.uri,
-      mimeType: resource.mimeType,
-      description: resource.description
+      mimeType: resource.mimeType
     }))
   }
   
-  async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolCallResponse> {
-    const response = await this.client.callTool({
+  async callTool(name: string, args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text?: string }> }> {
+    // Using any to bypass strict typing from the SDK
+    const response = await (this.client as any).callTool({
       name,
       arguments: args
     })
@@ -67,7 +69,7 @@ export class MCPClientWrapper {
   }
   
   async readResource(uri: string): Promise<{ contents: Array<{ text?: string; blob?: string }> }> {
-    return this.client.readResource({ uri })
+    return (this.client as any).readResource({ uri })
   }
   
   async getInfo(): Promise<MCPServerInfo> {
@@ -83,39 +85,19 @@ export class MCPClientWrapper {
 
 // MCP Server Manager - manages multiple MCP servers
 export class MCPServerManager {
-  private servers: Map<string, MCPClientWrapper> = new Map()
+  private servers: Map<string, { wrapper: MCPClientWrapper; transport: StdioClientTransport }> = new Map()
   
   // Add and connect to an MCP server
   async addServer(server: MCPServer): Promise<void> {
     if (!server.enabled) return
     
-    let transport: any
+    const config = server.config as { command: string; args: string[]; env?: Record<string, string> }
     
-    switch (server.config.type) {
-      case 'stdio': {
-        const config = server.config as { command: string; args: string[]; env?: Record<string, string> }
-        transport = new StdioClientTransport({
-          command: config.command,
-          args: config.args,
-          env: config.env
-        })
-        break
-      }
-      
-      case 'sse':
-      case 'http': {
-        const config = server.config as { url: string; headers?: Record<string, string> }
-        transport = new SSEClientTransport({
-          url: config.url,
-          headers: config.headers
-        })
-        break
-      }
-      
-      default:
-        console.warn(`Unsupported MCP transport type: ${server.config.type}`)
-        return
-    }
+    const transport = new StdioClientTransport({
+      command: config.command,
+      args: config.args,
+      env: config.env
+    })
     
     const client = new Client({
       name: server.name,
@@ -127,8 +109,9 @@ export class MCPServerManager {
     const wrapper = new MCPClientWrapper(server.name, client)
     
     try {
-      await wrapper.connect()
-      this.servers.set(server.name, wrapper)
+      await client.connect(transport)
+      wrapper.connect = async () => { /* Already connected */ }
+      this.servers.set(server.name, { wrapper, transport })
       console.log(`Connected to MCP server: ${server.name}`)
     } catch (error) {
       console.error(`Failed to add MCP server ${server.name}:`, error)
@@ -139,14 +122,14 @@ export class MCPServerManager {
   async removeServer(name: string): Promise<void> {
     const server = this.servers.get(name)
     if (server) {
-      await server.disconnect()
+      await server.wrapper.disconnect()
       this.servers.delete(name)
     }
   }
   
   // Get server by name
   getServer(name: string): MCPClientWrapper | undefined {
-    return this.servers.get(name)
+    return this.servers.get(name)?.wrapper
   }
   
   // List all connected servers
@@ -160,7 +143,7 @@ export class MCPServerManager {
     
     for (const [name, server] of this.servers.entries()) {
       try {
-        const tools = await server.listTools()
+        const tools = await server.wrapper.listTools()
         results.push({ server: name, tools })
       } catch (error) {
         console.error(`Failed to list tools from ${name}:`, error)
@@ -181,7 +164,7 @@ export class MCPServerManager {
     }
     
     try {
-      const response = await server.callTool(toolName, args)
+      const response = await server.wrapper.callTool(toolName, args)
       
       // Format response content
       const content = response.content
@@ -203,26 +186,18 @@ export class MCPServerManager {
   // Disconnect all servers
   async disconnectAll(): Promise<void> {
     for (const server of this.servers.values()) {
-      await server.disconnect()
+      await server.wrapper.disconnect()
     }
     this.servers.clear()
   }
 }
 
-// Create MCP tool wrapper for tool system
-export function createMCPToolWrapper(serverName: string, tool: MCPTool) {
-  return {
-    name: `mcp_${serverName}_${tool.name}`,
-    description: `[MCP: ${serverName}] ${tool.description}`,
-    execute: async (context: ToolContext, input: unknown): Promise<ToolResult> => {
-      const manager = (context as any)._mcpManager as MCPServerManager
-      if (!manager) {
-        return { content: 'MCP manager not available', error: 'MCP_NOT_INITIALIZED' }
-      }
-      return manager.callToolOnServer(serverName, tool.name, input as Record<string, unknown>)
-    }
-  }
-}
+// Global server manager instance
+let globalServerManager: MCPServerManager | null = null
 
-// Global server manager
-export const mcpServerManager = new MCPServerManager()
+export function getMCPServerManager(): MCPServerManager {
+  if (!globalServerManager) {
+    globalServerManager = new MCPServerManager()
+  }
+  return globalServerManager
+}
