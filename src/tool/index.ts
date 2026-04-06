@@ -26,6 +26,9 @@ export {
   type Team, type TeamMessage
 } from './team'
 
+// Re-export types for convenience
+export type { ToolContext } from '@/types/tool'
+
 import { readTool } from './read'
 import { writeTool } from './write'
 import { editTool } from './edit'
