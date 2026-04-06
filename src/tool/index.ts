@@ -1,7 +1,7 @@
 // Tool Registry - Export all tools
 export { readTool, ReadTool, ReadInputSchema } from './read'
 export { writeTool, WriteTool, WriteInputSchema } from './write'
-export { editTool, EditTool, EditInputSchema } from './edit'
+export { editTool, EditTool, EditInputSchema, replace, SimpleReplacer, LineTrimmedReplacer, BlockAnchorReplacer, WhitespaceNormalizedReplacer, IndentationFlexibleReplacer, TrimmedBoundaryReplacer, ContextAwareReplacer, type Replacer } from './edit'
 export { bashTool, BashTool, BashInputSchema } from './bash'
 export { grepTool, GrepTool, GrepInputSchema } from './grep'
 export { globTool, GlobTool, GlobInputSchema } from './glob'
