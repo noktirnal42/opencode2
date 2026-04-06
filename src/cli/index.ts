@@ -339,6 +339,48 @@ function versionCommand() {
   console.log(`OpenCode2 version ${VERSION}`)
 }
 
+// Remote control command
+async function remoteCommand(argv: any) {
+  if (!argv.start && !argv.stop && !argv.status) {
+    log('Use --start, --stop, or --status')
+    return
+  }
+
+  if (argv.status) {
+    // Check remote control status
+    log('Remote control status: Available (use --start to enable)', colors.cyan)
+    return
+  }
+
+  if (argv.start) {
+    const { createRemoteControl } = await import('@/remote')
+    const host = argv.host || 'localhost'
+    const port = argv.port || 8080
+
+    const remote = createRemoteControl({
+      enabled: true,
+      host,
+      port,
+      authToken: argv.token
+    })
+
+    try {
+      await remote.connect()
+      logSuccess(`Remote control started on ${host}:${port}`)
+      log(`${colors.dim}Press Ctrl+C to stop${colors.reset}`)
+
+      // Keep the process running
+      process.on('SIGINT', async () => {
+        await remote.disconnect()
+        log('\nRemote control stopped.')
+        process.exit(0)
+      })
+    } catch (error) {
+      logError(`Failed to start remote control: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+}
+
 // Main CLI setup
 yargs(hideBin(process.argv))
   .scriptName('opencode2')
@@ -414,6 +456,20 @@ yargs(hideBin(process.argv))
     'Show version',
     () => {},
     versionCommand
+  )
+  .command(
+    'remote',
+    'Remote control mode',
+    (yargs: any) => {
+      return yargs
+        .option('start', { type: 'boolean', describe: 'Start remote control server' })
+        .option('stop', { type: 'boolean', describe: 'Stop remote control server' })
+        .option('status', { type: 'boolean', describe: 'Check remote control status' })
+        .option('host', { type: 'string', describe: 'Host to bind to', default: 'localhost' })
+        .option('port', { type: 'number', describe: 'Port to bind to', default: 8080 })
+        .option('token', { type: 'string', describe: 'Authentication token' })
+    },
+    remoteCommand
   )
   .help()
   .alias('help', 'h')

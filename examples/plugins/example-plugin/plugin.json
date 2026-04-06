@@ -1,0 +1,7 @@
+{
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "Example plugin demonstrating the OpenCode2 plugin system",
+  "author": "OpenCode2",
+  "main": "index.js"
+}

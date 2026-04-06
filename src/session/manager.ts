@@ -164,6 +164,76 @@ export async function compactSession(
   await saveSession(workspacePath, session)
 }
 
+// Estimate token count (rough approximation: ~4 chars per token)
+export function estimateTokens(messages: SessionMessage[]): number {
+  const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0)
+  return Math.ceil(totalChars / 4)
+}
+
+// Check if session needs compaction
+export function needsCompaction(
+  messages: SessionMessage[],
+  maxTokens: number = 100000,
+  recentCount: number = 10
+): boolean {
+  const tokens = estimateTokens(messages)
+  const messageCount = messages.length
+  
+  // Need compaction if:
+  // 1. Total tokens exceed max
+  // 2. OR message count is high and we have enough recent messages
+  return tokens > maxTokens || (messageCount > recentCount * 2 && messageCount > 30)
+}
+
+// Get messages that should be summarized
+export function getMessagesToSummarize(
+  messages: SessionMessage[],
+  keepRecent: number = 10
+): SessionMessage[] {
+  // Skip system messages, return everything except recent messages
+  const nonSystemMessages = messages.filter(m => m.role !== 'system')
+  const toSummarize = nonSystemMessages.slice(0, -keepRecent)
+  return toSummarize
+}
+
+// Format messages for summarization prompt
+export function formatMessagesForSummary(messages: SessionMessage[]): string {
+  return messages
+    .filter(m => m.role !== 'system')
+    .map(m => `[${m.role}]: ${m.content}`)
+    .join('\n\n')
+}
+
+// Automatic session compaction with summarization
+export async function autoCompactSession(
+  workspacePath: string,
+  sessionId: string,
+  summarizer: (text: string) => Promise<string>
+): Promise<{ compacted: boolean; summary?: string }> {
+  const session = await loadSession(workspacePath, sessionId)
+  if (!session) return { compacted: false }
+  
+  // Check if compaction is needed
+  if (!needsCompaction(session.messages)) {
+    return { compacted: false }
+  }
+  
+  // Get messages to summarize (everything except system and recent)
+  const messagesToSummarize = getMessagesToSummarize(session.messages)
+  if (messagesToSummarize.length === 0) {
+    return { compacted: false }
+  }
+  
+  // Format and summarize
+  const textToSummarize = formatMessagesForSummary(messagesToSummarize)
+  const summary = await summarizer(textToSummarize)
+  
+  // Perform compaction
+  await compactSession(workspacePath, sessionId, summary)
+  
+  return { compacted: true, summary }
+}
+
 // Export for easy import
 export const sessionManager = {
   create: createSession,
@@ -174,5 +244,10 @@ export const sessionManager = {
   update: updateSession,
   delete: deleteSession,
   getRecent: getRecentSessions,
-  compact: compactSession
+  compact: compactSession,
+  estimateTokens,
+  needsCompaction,
+  getMessagesToSummarize,
+  formatMessagesForSummary,
+  autoCompact: autoCompactSession
 }
