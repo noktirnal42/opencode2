@@ -5,7 +5,7 @@ import { ConfigManager } from '@/config'
 import { tools, type ToolContext } from '@/tool'
 import { anthropic } from '@ai-sdk/anthropic'
 import { openai } from '@ai-sdk/openai'
-import { generateText } from 'ai'
+import { generateText, streamText } from 'ai'
 import * as readline from 'readline'
 import * as path from 'path'
 import * as fs from 'fs/promises'
@@ -52,7 +52,7 @@ function formatToolResult(toolName: string, result: any): string {
 }
 
 // Interactive REPL mode
-async function startRepl(agent: string, model: string, provider: string, apiKey: string) {
+async function startRepl(agent: string, model: string, provider: string, apiKey: string, streaming: boolean = false) {
   const configManager = new ConfigManager()
   const config = await configManager.load()
   
@@ -71,7 +71,7 @@ async function startRepl(agent: string, model: string, provider: string, apiKey:
     `You are ${agent}, an AI coding assistant. Help the user with their tasks.`
 
   log(`\n${colors.bright}OpenCode2 v${VERSION} - Interactive Mode${colors.reset}`)
-  log(`${colors.dim}Agent: ${agent} | Model: ${model}${colors.reset}`)
+  log(`${colors.dim}Agent: ${agent} | Model: ${model}${streaming ? ' | Streaming enabled' : ''}${colors.reset}`)
   log(`${colors.dim}Type 'exit' to quit, 'clear' to clear history${colors.reset}\n`)
 
   // Messages history
@@ -116,7 +116,7 @@ async function startRepl(agent: string, model: string, provider: string, apiKey:
     permissions: [],
   }
 
-  // Handle user input
+  // Handle user input (non-streaming)
   async function processInput(input: string) {
     if (!input.trim()) return
 
@@ -194,11 +194,92 @@ async function startRepl(agent: string, model: string, provider: string, apiKey:
     }
   }
 
+  // Handle user input (streaming mode)
+  async function processInputStream(input: string) {
+    if (!input.trim()) return
+
+    // Handle commands
+    if (input.toLowerCase() === 'exit') {
+      log('\nGoodbye! 👋')
+      rl.close()
+      process.exit(0)
+    }
+
+    if (input.toLowerCase() === 'clear') {
+      messages.length = 1 // Keep system prompt
+      console.clear()
+      return
+    }
+
+    // Add user message
+    messages.push({ role: 'user', content: input })
+
+    try {
+      // Prepare tool definitions
+      const toolDefs = Object.entries(tools).map(([name, tool]: [string, any]) => ({
+        name,
+        description: tool.description,
+        parameters: tool.inputSchema,
+      }))
+
+      // Stream response
+      const stream = streamText({
+        model: (useAnthropic ? anthropic(model) : openai(model)) as any,
+        system: systemPrompt,
+        messages: messages as any,
+        tools: toolDefs as any,
+        maxTokens: 4096,
+        maxSteps: 5,
+      })
+
+      // Process stream chunks
+      let fullText = ''
+      let toolCallBuffer: any[] = []
+      
+      process.stdout.write('\n')
+
+      for await (const chunk of stream.fullStream) {
+        if (chunk.type === 'text-delta') {
+          process.stdout.write(chunk.textDelta)
+          fullText += chunk.textDelta
+        } else if (chunk.type === 'tool-call') {
+          toolCallBuffer.push(chunk)
+          log(`\n${colors.yellow}[Calling tool: ${chunk.toolName}]${colors.reset}`)
+        } else if (chunk.type === 'tool-result') {
+          const result = typeof chunk.result === 'string' ? chunk.result : JSON.stringify(chunk.result)
+          log(`${colors.dim}${formatToolResult(chunk.toolName, result)}${colors.reset}\n`)
+          
+          // Add tool result to messages
+          messages.push({
+            role: 'tool' as const,
+            tool_call_id: chunk.toolCallId,
+            content: typeof chunk.result === 'string' ? chunk.result : JSON.stringify(chunk.result),
+          })
+        } else if (chunk.type === 'finish') {
+          console.log() // New line after stream
+        }
+      }
+
+      // Add assistant response to messages
+      if (fullText) {
+        messages.push({ role: 'assistant' as const, content: fullText })
+      }
+
+    } catch (error) {
+      logError(error instanceof Error ? error.message : String(error))
+      messages.pop() // Remove failed user message
+    }
+  }
+
   // Set prompt
   rl.prompt()
 
   rl.on('line', async (input) => {
-    await processInput(input)
+    if (streaming) {
+      await processInputStream(input)
+    } else {
+      await processInput(input)
+    }
     rl.prompt()
   })
 
@@ -330,8 +411,8 @@ async function providersCommand(argv: any) {
 }
 
 // Interactive shell command
-async function shellCommand(agent: string, model: string) {
-  await startRepl(agent, model, 'anthropic', process.env.ANTHROPIC_API_KEY || '')
+async function shellCommand(agent: string, model: string, streaming: boolean = false) {
+  await startRepl(agent, model, 'anthropic', process.env.ANTHROPIC_API_KEY || '', streaming)
 }
 
 // Version command
@@ -404,12 +485,18 @@ yargs(hideBin(process.argv))
           describe: 'Model to use',
           type: 'string'
         })
+        .option('stream', {
+          alias: 's',
+          describe: 'Enable streaming responses',
+          type: 'boolean',
+          default: false
+        })
     },
     async (argv: any) => {
       if (argv.prompt) {
         await runPrompt(argv.prompt, argv.agent, argv.model || 'claude-sonnet-4-20250514')
       } else {
-        await shellCommand(argv.agent, argv.model || 'claude-sonnet-4-20250514')
+        await shellCommand(argv.agent, argv.model || 'claude-sonnet-4-20250514', argv.stream)
       }
     }
   )
@@ -429,9 +516,15 @@ yargs(hideBin(process.argv))
           describe: 'Model to use',
           type: 'string'
         })
+        .option('stream', {
+          alias: 's',
+          describe: 'Enable streaming responses',
+          type: 'boolean',
+          default: false
+        })
     },
     async (argv: any) => {
-      await shellCommand(argv.agent, argv.model || 'claude-sonnet-4-20250514')
+      await shellCommand(argv.agent, argv.model || 'claude-sonnet-4-20250514', argv.stream)
     }
   )
   .command(

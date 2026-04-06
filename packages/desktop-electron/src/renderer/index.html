@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
-  <title>OpenCode2</title>
+  <title>OpenCode2 - Jeeves Edition</title>
   <style>
     * {
       margin: 0;
@@ -13,14 +13,20 @@
     }
     
     :root {
-      --bg-primary: #1e1e1e;
-      --bg-secondary: #252526;
-      --bg-tertiary: #2d2d2d;
-      --text-primary: #cccccc;
-      --text-secondary: #858585;
-      --accent: #007acc;
-      --accent-hover: #0098ff;
-      --border: #3c3c3c;
+      /* Jeeves Theme - Purple & Green */
+      --bg-primary: #1a1625;
+      --bg-secondary: #231d30;
+      --bg-tertiary: #2d2640;
+      --text-primary: #e8e6f0;
+      --text-secondary: #9d97b0;
+      --accent: #7c4dff;
+      --accent-secondary: #00e676;
+      --accent-hover: #9d7aff;
+      --border: #3d3455;
+      
+      /* Aliases for compatibility */
+      --accent: var(--accent);
+      --accent-hover: var(--accent-hover);
     }
     
     body {
@@ -35,18 +41,23 @@
     /* Title bar */
     .titlebar {
       height: 40px;
-      background: var(--bg-secondary);
+      background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
       -webkit-app-region: drag;
       user-select: none;
+      border-bottom: 1px solid var(--border);
     }
     
     .titlebar-title {
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     
     .titlebar-controls {
@@ -61,15 +72,16 @@
       border-radius: 50%;
       border: none;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s, transform 0.2s;
     }
     
     .titlebar-btn:hover {
       opacity: 0.8;
+      transform: scale(1.1);
     }
     
     .btn-minimize { background: #f1c40f; }
-    .btn-maximize { background: #2ecc71; }
+    .btn-maximize { background: var(--accent-secondary); }
     .btn-close { background: #e74c3c; }
     
     /* Main content */
@@ -106,8 +118,9 @@
     }
     
     .sidebar-btn:hover, .sidebar-btn.active {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+      color: var(--accent-secondary);
+      box-shadow: 0 0 10px rgba(124, 77, 255, 0.3);
     }
     
     /* Content area */
@@ -141,13 +154,17 @@
     
     .settings-section {
       margin-bottom: 24px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
     }
     
     .settings-title {
       font-size: 14px;
       font-weight: 600;
       margin-bottom: 16px;
-      color: var(--text-primary);
+      color: var(--accent-secondary);
     }
     
     /* Slider */
@@ -161,7 +178,7 @@
       flex: 1;
       -webkit-appearance: none;
       height: 4px;
-      background: var(--bg-tertiary);
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%);
       border-radius: 2px;
       outline: none;
     }
@@ -170,16 +187,18 @@
       -webkit-appearance: none;
       width: 16px;
       height: 16px;
-      background: var(--accent);
+      background: var(--text-primary);
       border-radius: 50%;
       cursor: pointer;
+      box-shadow: 0 0 8px rgba(124, 77, 255, 0.5);
     }
     
     .slider-value {
       font-size: 12px;
-      color: var(--text-secondary);
+      color: var(--accent-secondary);
       min-width: 40px;
       text-align: right;
+      font-weight: 600;
     }
     
     /* Toggle */
@@ -202,10 +221,11 @@
       cursor: pointer;
       position: relative;
       transition: background 0.2s;
+      border: 1px solid var(--border);
     }
     
     .toggle.active {
-      background: var(--accent);
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-secondary) 100%);
     }
     
     .toggle::after {
@@ -213,7 +233,7 @@
       position: absolute;
       width: 18px;
       height: 18px;
-      background: white;
+      background: var(--text-primary);
       border-radius: 50%;
       top: 2px;
       left: 2px;
@@ -238,6 +258,7 @@
     .input:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(124, 77, 255, 0.3);
     }
     
     /* Status bar */
@@ -252,12 +273,16 @@
       color: var(--text-secondary);
       gap: 16px;
     }
+    
+    .statusbar span {
+      color: var(--accent-secondary);
+    }
   </style>
 </head>
 <body>
   <!-- Title bar -->
   <div class="titlebar">
-    <span class="titlebar-title">OpenCode2</span>
+    <span class="titlebar-title">🎩 OpenCode2 - Jeeves Edition</span>
     <div class="titlebar-controls">
       <button class="titlebar-btn btn-minimize" onclick="window.api.window.minimize()"></button>
       <button class="titlebar-btn btn-maximize" onclick="window.api.window.maximize()"></button>
@@ -277,8 +302,10 @@
     <div class="content">
       <!-- Terminal view -->
       <div class="terminal" id="terminal">
-OpenCode2 v2.0.0-alpha.1
+🎩 OpenCode2 - Jeeves Edition v2.0.0-alpha.1
 ═══════════════════════════════════════════════════
+
+Your wish is my command. How may I assist you today?
 
 Type a prompt to begin...
       </div>
