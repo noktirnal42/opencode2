@@ -1,0 +1,43 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for OpenCode2
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+        Describe the feature you'd like to see added to OpenCode2.
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature Description
+      placeholder: A clear and concise description of the feature you're requesting...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      placeholder: What problem does this feature solve? Why is it needed?
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      placeholder: Describe your proposed solution...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      placeholder: Describe any alternative solutions you've considered...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      placeholder: Add any other context, mockups, or examples...

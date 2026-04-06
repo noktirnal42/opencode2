@@ -1,0 +1,66 @@
+name: Bug Report
+description: Report a bug to help us improve OpenCode2
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Description
+        Please describe the bug clearly and concisely.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: A clear and concise description of what the bug is...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "To Reproduce"
+      placeholder: |
+        Steps to reproduce the behavior:
+        1. Go to '...'
+        2. Run '...'
+        3. See error...
+    validations:
+      required: true
+
+  - type: input
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: What you expected to happen...
+
+  - type: input
+    id: actual
+    attributes:
+      label: Actual Behavior
+      placeholder: What actually happened...
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      options:
+        - Latest (master)
+        - Dev branch
+        - Previous release
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      placeholder: Please paste any relevant log output here...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      placeholder: Add any other context about the problem here...

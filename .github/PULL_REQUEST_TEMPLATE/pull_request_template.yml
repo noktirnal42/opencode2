@@ -1,0 +1,53 @@
+name: Pull Request
+description: Submit changes to OpenCode2
+title: "[PR]: "
+labels: ["triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Pull Request
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: Describe your changes and why...
+    validations:
+      required: true
+
+  - type: textarea
+    id: type
+    attributes:
+      label: Type of Change
+      placeholder: |
+        - [ ] Bug fix
+        - [ ] New feature
+        - [ ] Breaking change
+        - [ ] Documentation update
+        - [ ] Refactoring
+        - [ ] Tests
+
+  - type: textarea
+    id: testing
+    attributes:
+      label: Testing Done
+      placeholder: Describe the testing you performed...
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      placeholder: |
+        - [ ] My code follows the project's code style
+        - [ ] I have self-reviewed my code
+        - [ ] I have commented my code where necessary
+        - [ ] My changes generate no new warnings
+        - [ ] I have added tests that prove my fix/feature works
+        - [ ] New and existing tests pass locally
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues
+      placeholder: Links to related issues (e.g., "Closes #123")

@@ -1,0 +1,12 @@
+# CODEOWNERS - Define who owns what parts of the codebase
+
+# Default owner for everything
+* @noktirnal42
+
+# Code ownership by directory
+# Uncomment and customize as needed:
+# src/agent/ @noktirnal42
+# src/tool/ @noktirnal42
+# src/mcp/ @noktirnal42
+# src/memory/ @noktirnal42
+# packages/desktop-electron/ @noktirnal42
